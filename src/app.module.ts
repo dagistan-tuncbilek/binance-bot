@@ -5,12 +5,15 @@ import {PrismaConfigService} from "./config/prisma-config-service";
 import {ConfigModule} from "@nestjs/config";
 import {AppService} from "./core/app.service";
 import {HttpModule} from "@nestjs/axios";
-import { DbService } from './core/db.service';
+import {DbService} from './core/db.service';
+import {ScheduleModule} from "@nestjs/schedule";
+import { CalculationService } from './core/calculation.service';
 
 
 @Module({
     imports: [
         HttpModule,
+        ScheduleModule.forRoot(),
         ConfigModule.forRoot({
             isGlobal: true,
             cache: true,
@@ -21,7 +24,7 @@ import { DbService } from './core/db.service';
         }),
     ],
     controllers: [AppController],
-    providers: [AppService, DbService],
+    providers: [AppService, DbService, CalculationService],
 })
 export class AppModule {
 }
