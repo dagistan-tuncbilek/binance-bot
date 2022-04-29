@@ -8,25 +8,30 @@ datasource db {
 }
 
 model Coin {
-  id        Int         @id @default(autoincrement()) @db.UnsignedInt
-  asset     String      @db.VarChar(255)
-  symbol    String?     @db.VarChar(255)
-  ratio     Float
-  amount    Float       @default(0)
-  overflow  Int         @default(0)
-  updatedAt DateTime    @updatedAt
-  createdAt DateTime    @default(now())
+  id            Int         @id @default(autoincrement()) @db.UnsignedInt
+  asset         String      @db.VarChar(255) @unique
+  symbol        String?     @db.VarChar(255) @unique
+  averagePrice  Float
+  amount        Float       @default(0)
+  overflow      Int         @default(0)
+  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime    @default(now())
 
   @@map("coins")
 }
 
 model Trade {
-  id            Int      @id @default(autoincrement()) @db.UnsignedInt
-  asset         String   @db.VarChar(255)
-  price         Float
-  amount        Float
-  explanation   String   @db.VarChar(255)
-  updatedAt     DateTime @updatedAt
+  id                Int     @id @default(autoincrement()) @db.UnsignedInt
+  symbol            String  @db.VarChar(255)
+  side              String  @db.VarChar(255)
+  type              String  @db.VarChar(255) @default("MARKET")
+  price             Float
+  qty               Float
+  commission        Float
+  commissionAsset   String  @db.VarChar(255)
+  orderId           Int     @db.UnsignedInt
+  tradeId           Int     @db.UnsignedInt
+  clientOrderId     String  @db.VarChar(255)
   createdAt     DateTime @default(now())
 
   @@map("trades")
