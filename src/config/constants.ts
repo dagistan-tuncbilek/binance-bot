@@ -10,11 +10,11 @@ export const LOG_LEVEL = 'info'; // other options warn, error, info, debug
 export const DEFAULT_BASKET: CoinCreateInput[] = [
     // {symbol: 'CELRBUSD', asset: 'CELR', averagePrice: 0.045},
     // {symbol: 'HOTBUSD', asset: 'HOT', averagePrice: 0.0045},
-    // {symbol: 'HBARBUSD', asset: 'HBAR', averagePrice: 0.18},
-    // {symbol: 'DOTBUSD', asset: 'DOT', averagePrice: 18},
-    {symbol: 'DOGEBUSD', asset: 'DOGE', averagePrice: 0.14224},
-    {symbol: 'SHIBBUSD', asset: 'SHIB', averagePrice: 0.00002486},
-    {symbol: 'MINABUSD', asset: 'MINA', averagePrice: 2.548},
+    {symbol: 'HBARBUSD', asset: 'HBAR', averagePrice: 0.2001},
+    {symbol: 'DOTBUSD', asset: 'DOT', averagePrice: 18.92},
+    // {symbol: 'DOGEBUSD', asset: 'DOGE', averagePrice: 0.14224},
+    // {symbol: 'SHIBBUSD', asset: 'SHIB', averagePrice: 0.00002486},
+    {symbol: 'MINABUSD', asset: 'MINA', averagePrice: 2.52},
     {symbol: '', asset: 'BUSD', averagePrice: 1},
 ];
 

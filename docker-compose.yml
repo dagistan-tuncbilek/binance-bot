@@ -1,29 +1,22 @@
-version: '3.8'
+version: '3.7'
 services:
-  nest-api:
+  api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: nest-api
-    restart: always
-    ports:
-      - 3000:3000
-    depends_on:
-      - nest-mysql
-    env_file:
-      - .env
+    container_name: dt-binance-bot
+    image: dtuncbilek/dt-binance-bot:0.0.1
+    restart: unless-stopped
+#    volumes:
+#      - ./:/app
+    # ports:
+    #   - 3000:3000
+    networks:
+      - mariadb_network
+      - nginxproxymanager_default
 
-  nest-mysql:
-    image: mysql:8
-    container_name: nest-mysql
-    restart: always
-    ports:
-      - 3306:3306
-    env_file:
-      - .env
-    volumes:
-      - nest-mysql:/var/lib/mysql
-
-volumes:
-  nest-mysql:
-    name: nest-mysql-db
+networks:
+  mariadb_network:
+    external: true
+  nginxproxymanager_default:
+    external: true
