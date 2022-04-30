@@ -1,7 +1,6 @@
 import {Injectable, Logger} from '@nestjs/common';
-import {Spot} from '@binance/connector';
 import {ComparativeCoinData} from "../config/models/comparative-coin-data";
-import {BINANCE_TEST_API_URL, OVERFLOW_PRICE_TABLE} from "../config/constants";
+import {OVERFLOW_PRICE_TABLE} from "../config/constants";
 import {DbService} from "./db.service";
 import {ConfigService} from "@nestjs/config";
 import {Environment} from "../config/enums/environment";
@@ -16,11 +15,47 @@ export class TradeService {
     async buy() {
         let busd = this.binanceService.basket.find(c => c.asset === 'BUSD').amount;
         if (busd < 11) return;
-        const {comparativeCoinData} = this.prepareDataForTrade();
-        const coinData = comparativeCoinData.sort((a, b) => a.fiatRatio - b.fiatRatio);
-        console.log('Buying ' + coinData[0].symbol, coinData.map(c => c.symbol + ': ' + c.fiatRatio));
+        const buyList: {coinData:  ComparativeCoinData, busd: number}[] = await this.prepareBuyList(busd);
+        for (const item of buyList){
+            console.log(`Buying ${item.coinData.symbol}, amount ${item.busd}`);
+            this.startBuyTrade(item.coinData, busd);
+        }
+    }
 
-        this.startBuyTrade(coinData, busd);
+    private async prepareBuyList(busd: number) {
+        let {comparativeCoinData, totalValue, averageFiatRatio} = this.prepareDataForTrade();
+        console.log('totalValue : ', totalValue);
+        const avgValue = totalValue / comparativeCoinData.length;
+        const buyList: {coinData:  ComparativeCoinData, busd: number}[] = [];
+        comparativeCoinData = comparativeCoinData.sort((a, b) => a.fiatRatio - b.fiatRatio);
+        const newCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice < 10 && data.overflow === 0);
+        for (const coinData of newCoins) {
+            await this.initializeOverFlow(coinData, averageFiatRatio);
+        }
+
+        const lowValueCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice <= 10);
+        const otherCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice > 10);
+        for (const coinData of lowValueCoins){
+            const tableRow = OVERFLOW_PRICE_TABLE.find(row => row.overflow === coinData.overflow);
+            if (busd > 10){
+                const amount = busd > tableRow.factor * avgValue ? tableRow.factor * avgValue : busd;
+                buyList.push({coinData: coinData, busd: amount });
+                busd = busd - amount;
+            } else {
+                break;
+            }
+        }
+        for (const coinData of otherCoins){
+            if (busd > 10){
+                const requiredValue = avgValue * 2 - coinData.amount * coinData.currentPrice;
+                const amount = busd > requiredValue ? requiredValue : busd;
+                buyList.push({coinData: coinData, busd: amount });
+                busd = busd - amount;
+            } else {
+                break;
+            }
+        }
+        return buyList;
     }
 
     async sell(): Promise<boolean> {
@@ -93,52 +128,42 @@ export class TradeService {
         return {comparativeCoinData, totalValue, averageFiatRatio};
     }
 
-    private startBuyTrade(coinData: ComparativeCoinData[], BUSD: number) {
-        let client, symbol;
-        if (this.config.get('NODE_ENV') !== Environment.Production) {
-            client = this.testClient();
-            symbol = 'BNBBUSD';
-            BUSD = 123.56;
-        } else {
-            client = this.realClient();
-            symbol = coinData[0].symbol;
+    private startBuyTrade(coinData: ComparativeCoinData, busd: number) {
+        if (this.config.get('NODE_ENV') === Environment.Production) {
+            const client = this.binanceService.realClient();
+            client.newOrder(coinData.symbol, 'BUY', 'MARKET', {quoteOrderQty: busd})
+                .then(async response => {
+                    this.logger.log(response.data);
+                    await this.db.createTrade(response.data);
+                    await this.binanceService.synchronizeBasket();
+                })
+                .catch(err => {
+                    console.log(err);
+                    this.logger.error('Buy order, ', err.data, TradeService.name);
+                });
         }
-
-        client.newOrder(symbol, 'BUY', 'MARKET', {quoteOrderQty: BUSD})
-            .then(async response => {
-                this.logger.log(response.data);
-                await this.db.createTrade(response.data);
-                await this.binanceService.synchronizeBasket();
-            })
-            .catch(err => this.logger.error('Buy order, ', JSON.stringify(err.data), TradeService.name));
     }
 
     private startSellTrade(coinData: ComparativeCoinData, surplus: number) {
-        let client, symbol, quantity;
         console.log('quantity', this.getValidQuantity(coinData.symbol, surplus));
-        if (this.config.get('NODE_ENV') !== Environment.Production) {
-            client = this.testClient();
-            symbol = 'BNBBUSD';
-            quantity = 1;
-        } else {
-            client = this.realClient();
-            symbol = coinData.symbol;
-            quantity = this.getValidQuantity(coinData.symbol, surplus);
-        }
-        client.newOrder(symbol, 'SELL', 'MARKET', {quantity: quantity})
-            .then(async response => {
-                client.logger.log(response.data);
-                const filled = (<OrderResponse>response.data).fills.reduce((a, b) => a + +b.qty, 0);
-                await this.db.updateCoinByAsset(coinData.asset, {
-                    amount: coinData.amount - filled,
-                    overflow: coinData.overflow + 1
+        if (this.config.get('NODE_ENV') === Environment.Production) {
+            const client = this.binanceService.realClient();
+            const quantity = this.getValidQuantity(coinData.symbol, surplus);
+            client.newOrder(coinData.symbol, 'SELL', 'MARKET', {quantity: quantity})
+                .then(async response => {
+                    client.logger.log(response.data);
+                    const filled = (<OrderResponse>response.data).fills.reduce((a, b) => a + +b.qty, 0);
+                    await this.db.updateCoinByAsset(coinData.asset, {
+                        amount: coinData.amount - filled,
+                        overflow: coinData.overflow + 1
+                    });
+                    await this.db.createTrade(response.data);
+                })
+                .catch(err => {
+                    console.log(err);
+                    this.logger.error('Find last prices request, ', JSON.stringify(err), TradeService.name)
                 });
-                await this.db.createTrade(response.data);
-            })
-            .catch(err => {
-                console.log(err);
-                this.logger.error('Find last prices request, ', JSON.stringify(err), TradeService.name)
-            });
+        }
     }
 
     private getValidQuantity(symbol: string, amount: number): number {
@@ -149,11 +174,14 @@ export class TradeService {
         return quantity * filter.stepSize;
     }
 
-    private testClient() {
-        return new Spot(this.config.get('TESTNET_API_KEY'), this.config.get('TESTNET_SECRET_KEY'), {baseURL: BINANCE_TEST_API_URL});
-    }
-
-    private realClient() {
-        return new Spot(this.config.get('API_KEY'), this.config.get('SECRET_KEY'));
+    private async initializeOverFlow(coinData: ComparativeCoinData, averageFiatRatio: number) {
+        for (let i = OVERFLOW_PRICE_TABLE.length -1 ; i >= 0 ; i--){
+            if (i !== coinData.overflow && coinData.fiatRatio / averageFiatRatio > (OVERFLOW_PRICE_TABLE[i].percentage + 100) / 100){
+                console.log(coinData.asset, { overflow: i });
+                coinData.overflow = i;
+                await this.db.updateCoinByAsset(coinData.asset, { overflow: i });
+                break;
+            }
+        }
     }
 }

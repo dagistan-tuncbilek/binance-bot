@@ -2,7 +2,7 @@ import {Injectable, Logger} from '@nestjs/common';
 import {HttpService} from "@nestjs/axios";
 import {forkJoin, Observable} from "rxjs";
 import {DbService} from "./db.service";
-import {BINANCE_API_URL, DAILY_PRICE_LIMIT, DEFAULT_BASKET} from "../config/constants";
+import {BINANCE_API_URL, PRICE_REQUEST_LIMIT, DEFAULT_BASKET, PRICE_REQUEST_INTERVAL} from "../config/constants";
 import {Cron, CronExpression} from "@nestjs/schedule";
 import {TradeService} from "./trade.service";
 import {BinanceService} from "./binance.service";
@@ -22,26 +22,32 @@ export class AppService {
     async initialize() {
         await this.createBasket();
         await this.binanceService.storeExchangeInfo();
-        await this.synchronizeBasket();
         await this.fetchDailyAvgPrices();
+        this.fetchPrices();
+
+        setTimeout(async () => {
+            await this.synchronizeBasket();
+        }, 5000);
     }
 
     @Cron('45 * * * * *')
     private fetchPrices() {
-        console.log('Fetching prices ...')
-        this.findLastPrices(DEFAULT_BASKET.filter(c => c.symbol).map(c => c.symbol)).subscribe({
+        console.log('Fetching prices ...');
+        this.findLastPrices(this.binanceService.defaultBasket().filter(c => c.symbol).map(c => c.symbol)).subscribe({
             next: async (response) => {
                 this.binanceService.marketPrices = response.map(r => r.data);
-                const sold = await this.tradeService.sell();
-                if (sold){
-                    setTimeout(async () => await this.binanceService.synchronizeBasket(), 3000);
-                    setTimeout(async () => {
-                        console.log('Sold sth, now buying...');
-                        await this.tradeService.buy();
+                if (this.isDataReady()){
+                    const sold = await this.tradeService.sell();
+                    if (sold){
+                        setTimeout(async () => await this.binanceService.synchronizeBasket(), 3000);
                         setTimeout(async () => {
-                            await this.synchronizeBasket();
-                        }, 3000);
-                    }, 6000);
+                            console.log('Sold sth, now buying...');
+                            await this.tradeService.buy();
+                            setTimeout(async () => {
+                                await this.synchronizeBasket();
+                            }, 3000);
+                        }, 6000);
+                    }
                 }
             },
             error: err => this.logger.error('FindLastPrices request, ', JSON.stringify(err.data), AppService.name)
@@ -52,8 +58,8 @@ export class AppService {
         console.log('Synchronizing Basket...');
         await this.binanceService.synchronizeBasket();
         setTimeout(async () => {
-            console.log(this.binanceService.basket.find(c => c.asset === 'BUSD').amount)
-            if (this.binanceService.marketPrices.length && this.binanceService.basket.find(c => c.asset === 'BUSD').amount > 11) {
+            // console.log(this.isDataReady(), this.binanceService.basket.find(c => c.asset === 'BUSD').amount > 11)
+            if (this.isDataReady() && this.binanceService.basket.find(c => c.asset === 'BUSD').amount > 11) {
                 await this.tradeService.buy();
             }
         }, 3000);
@@ -63,19 +69,19 @@ export class AppService {
         const basket = await this.db.getBasket();
         if (this.binanceService.basket.length !== DEFAULT_BASKET.length) {
             const assets = basket.map(b => b.asset);
-            await this.db.createBasket(DEFAULT_BASKET.filter(defaultBasket => !assets.includes(defaultBasket.asset)));
+            await this.db.createBasket(this.binanceService.defaultBasket().filter(defaultBasket => !assets.includes(defaultBasket.asset)));
             this.binanceService.basket = await this.db.getBasket();
         } else {
             this.binanceService.basket = basket;
         }
     }
 
-    @Cron(CronExpression.EVERY_6_HOURS)
+    @Cron(CronExpression.EVERY_4_HOURS)
     async fetchDailyAvgPrices() {
-        for (const symbol of DEFAULT_BASKET.filter(c => c.symbol).map(c => c.symbol)) {
+        for (const symbol of this.binanceService.defaultBasket().filter(c => c.symbol).map(c => c.symbol)) {
             await this.fetchDailyPrices(symbol).subscribe({
                 next: response => {
-                    const average = response.data.reduce((a,b) => a + +b[4], 0) / DAILY_PRICE_LIMIT;
+                    const average = response.data.reduce((a,b) => a + +b[4], 0) / PRICE_REQUEST_LIMIT;
                     this.db.updateAveragePriceBySymbol(symbol, average);
                 },
                 error: err => this.logger.error('FetchDailyAvgPrices request, ', JSON.stringify(err.data), AppService.name)
@@ -84,7 +90,7 @@ export class AppService {
     }
 
     private fetchDailyPrices(symbol: string): Observable<any> {
-        const params = `symbol=${symbol}&interval=1d&limit=${DAILY_PRICE_LIMIT}`
+        const params = `symbol=${symbol}&interval=${PRICE_REQUEST_INTERVAL}&limit=${PRICE_REQUEST_LIMIT}`
         return this.httpService.get(`${BINANCE_API_URL}/api/v3/klines?${params}`);
     }
 
@@ -94,5 +100,9 @@ export class AppService {
                 this.httpService.get(`${BINANCE_API_URL}/api/v3/ticker/price?symbol=${symbol}`)
             )
         )
+    }
+
+    private isDataReady(): boolean {
+        return this.binanceService.marketPrices.length > 0 && Object.keys(this.binanceService.filters).length > 0;
     }
 }

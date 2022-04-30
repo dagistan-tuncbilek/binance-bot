@@ -5,12 +5,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: dt-binance-bot
-    image: dtuncbilek/dt-binance-bot:0.0.1
+    image: dtuncbilek/dt-binance-bot:0.0.2
     restart: unless-stopped
 #    volumes:
 #      - ./:/app
     # ports:
-    #   - 3000:3000
+    #   - 3003:3000
     networks:
       - mariadb_network
       - nginxproxymanager_default
