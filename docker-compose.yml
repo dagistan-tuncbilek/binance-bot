@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: dt-raider
-    image: dtuncbilek/dt-binance-bot:0.0.3
+    image: dtuncbilek/dt-binance-bot:0.1
     restart: unless-stopped
 #    volumes:
 #      - ./:/app
