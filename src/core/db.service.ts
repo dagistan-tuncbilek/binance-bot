@@ -1,10 +1,10 @@
-import {Injectable} from '@nestjs/common';
+import {BadRequestException, Injectable} from '@nestjs/common';
 import {PrismaService} from "nestjs-prisma";
-import {Prisma} from ".prisma/client";
+import {Coin, Prisma} from ".prisma/client";
 import TradeCreateInput = Prisma.TradeCreateInput;
-import CoinCreateInput = Prisma.CoinCreateInput;
 import CoinUpdateInput = Prisma.CoinUpdateInput;
 import {OrderResponse} from "../config/models/order-response";
+import {CreateCoinDto} from "../config/dto/create-coin.dto";
 
 
 @Injectable()
@@ -12,12 +12,23 @@ export class DbService {
 
     constructor(private prisma: PrismaService) {}
 
-    getBasket() {
-        return this.prisma.coin.findMany({});
+    async getBasket(): Promise<Coin[]> {
+        const basket: Coin[] = await this.prisma.coin.findMany({});
+        if (basket.length === 0) {
+            const coin = await this.prisma.coin.create({
+                data: {asset: 'BUSD', symbol: 'BUSD', averagePrice: 1}
+            });
+            basket.push(coin);
+        }
+        return basket;
     }
 
-    createBasket(data: CoinCreateInput[]) {
-        return this.prisma.coin.createMany({data})
+    async createCoin(createCoinDto: CreateCoinDto) {
+        try {
+            return await this.prisma.coin.create({data: createCoinDto});
+        } catch (ex) {
+            throw new BadRequestException('Symbol and asset mus be uniq');
+        }
     }
 
     async updateBasket(coins: { id: number, amount: number }[]) {
@@ -57,5 +68,9 @@ export class DbService {
             }
             await this.prisma.trade.createMany({data: trades});
         }
+    }
+
+    trades() {
+        return this.prisma.trade.findMany({ orderBy: { createdAt: 'desc'}});
     }
 }

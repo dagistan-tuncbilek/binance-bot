@@ -6,6 +6,8 @@ import {ConfigService} from "@nestjs/config";
 import {Environment} from "../config/enums/environment";
 import {BinanceService} from "./binance.service";
 import {OrderResponse} from "../config/models/order-response";
+import {MarketPrice} from "../config/models/market-price";
+import {Coin} from ".prisma/client";
 
 @Injectable()
 export class TradeService {
@@ -13,7 +15,7 @@ export class TradeService {
     constructor(private db: DbService, private config: ConfigService, private binanceService: BinanceService, private logger: Logger) {}
 
     async buy() {
-        let busd = this.binanceService.basket.find(c => c.asset === 'BUSD').amount;
+        let busd = (await this.binanceService.basket()).find(c => c.asset === 'BUSD').amount;
         if (busd < 11) return;
         const buyList: {coinData:  ComparativeCoinData, busd: number}[] = await this.prepareBuyList(busd);
         for (const item of buyList){
@@ -23,7 +25,7 @@ export class TradeService {
     }
 
     private async prepareBuyList(busd: number) {
-        let {comparativeCoinData, totalValue, averageFiatRatio} = this.prepareDataForTrade();
+        let {comparativeCoinData, totalValue, averageFiatRatio} = await this.prepareDataForTrade();
         console.log('totalValue : ', totalValue);
         const avgValue = totalValue / comparativeCoinData.length;
         const buyList: {coinData:  ComparativeCoinData, busd: number}[] = [];
@@ -60,7 +62,7 @@ export class TradeService {
 
     async sell(): Promise<boolean> {
         let sold = false;
-        const {comparativeCoinData, totalValue, averageFiatRatio} = this.prepareDataForTrade();
+        const {comparativeCoinData, totalValue, averageFiatRatio} = await this.prepareDataForTrade();
         for (const coinData of comparativeCoinData) {
             const surplus: number = this.calculateSellAmount(coinData, averageFiatRatio, totalValue, comparativeCoinData.length);
             if (surplus) {
@@ -104,11 +106,12 @@ export class TradeService {
         }
     }
 
-    private prepareDataForTrade() {
-        let totalValue = this.binanceService.basket.find(c => c.asset === 'BUSD').amount;
+    private async prepareDataForTrade() {
+        const basket = await this.binanceService.basket();
+        let totalValue = basket.find(c => c.asset === 'BUSD').amount;
         const comparativeCoinData: ComparativeCoinData[] = [];
-        for (const coin of this.binanceService.basket) {
-            if (coin.symbol) {
+        for (const coin of basket) {
+            if (coin.symbol !== 'BUSD' && coin.symbol !== 'USDT') {
                 const currentPrice = +this.binanceService.marketPrices.find(p => p.symbol === coin.symbol).price;
                 comparativeCoinData.push({
                     coinId: coin.id,
@@ -144,14 +147,15 @@ export class TradeService {
         }
     }
 
-    private startSellTrade(coinData: ComparativeCoinData, surplus: number) {
-        console.log('quantity', this.getValidQuantity(coinData.symbol, surplus));
+    private startSellTrade(coinData: ComparativeCoinData, surplus: number, usdt = false) {
+        const symbol = usdt ? coinData.symbol.slice(0, coinData.symbol.length - 4) + "USDT" : coinData.symbol;
+        console.log('Selling ' + this.getValidQuantity(coinData.symbol, surplus) + ' ' + symbol);
         if (this.config.get('NODE_ENV') === Environment.Production) {
             const client = this.binanceService.realClient();
             const quantity = this.getValidQuantity(coinData.symbol, surplus);
-            client.newOrder(coinData.symbol, 'SELL', 'MARKET', {quantity: quantity})
+            client.newOrder(symbol, 'SELL', 'MARKET', {quantity: quantity})
                 .then(async response => {
-                    client.logger.log(response.data);
+                    this.logger.log(response.data);
                     const filled = (<OrderResponse>response.data).fills.reduce((a, b) => a + +b.qty, 0);
                     await this.db.updateCoinByAsset(coinData.asset, {
                         amount: coinData.amount - filled,
@@ -161,7 +165,7 @@ export class TradeService {
                 })
                 .catch(err => {
                     console.log(err);
-                    this.logger.error('Find last prices request, ', JSON.stringify(err), TradeService.name)
+                    this.logger.error('Find last prices request, ', err, TradeService.name)
                 });
         }
     }
@@ -170,8 +174,7 @@ export class TradeService {
         const filter = this.binanceService.filters[symbol];
         const factor = 1 / filter.stepSize;
         const quantity = Math.floor(amount * factor)
-        console.log(quantity * filter.stepSize);
-        return quantity * filter.stepSize;
+        return quantity / factor;
     }
 
     private async initializeOverFlow(coinData: ComparativeCoinData, averageFiatRatio: number) {
@@ -182,6 +185,49 @@ export class TradeService {
                 await this.db.updateCoinByAsset(coinData.asset, { overflow: i });
                 break;
             }
+        }
+    }
+
+    async sellAll(percentage: number, marketPrices: MarketPrice[]) {
+        const basket = (await this.binanceService.basket()).filter(c => c.asset !== "BUSD" && c.asset !== "USDT");
+        const response = [];
+        for (const coin of basket){
+            const marketPrice = marketPrices.find(p => p.symbol === coin.symbol);
+            if (coin.amount * +marketPrice.price * percentage / 100 > 10.1){
+                const coinData = TradeService.createCoinData(coin, marketPrice);
+                this.startSellTrade(coinData, coin.amount * percentage / 100, true );
+                const symbol = coin.symbol.slice(0, coin.symbol.length - 4) + "USDT";
+                response.push({message: this.getValidQuantity(coin.symbol, coin.amount * percentage / 100) + " " + symbol + " sold."});
+            } else {
+                response.push({message: coin.symbol + " quantity is not enough, sold 0."});
+            }
+        }
+        return response;
+    }
+
+    async sellToUsdt(percentage: number, asset: string, marketPrices: MarketPrice[]) {
+        const coin = (await this.binanceService.basket()).find(c => c.asset === asset);
+        const marketPrice = marketPrices.find(p => p.symbol === coin.symbol);
+        if (coin.amount * +marketPrice.price * percentage / 100 > 10.1){
+            const coinData = TradeService.createCoinData(coin, marketPrice);
+            this.startSellTrade(coinData, coin.amount * percentage / 100, true );
+            const symbol = coin.symbol.slice(0, coin.symbol.length - 4) + "USDT";
+            return { message: this.getValidQuantity(coin.symbol, coin.amount * percentage / 100) + " " + symbol + " sold."};
+        } else {
+            return { message: "Quantity is not enough"};
+        }
+    }
+
+    private static createCoinData(coin: Coin, marketPrice: MarketPrice) {
+        return {
+            amount: coin.amount,
+            averagePrice: coin.averagePrice,
+            overflow: coin.overflow,
+            currentPrice: +marketPrice.price,
+            asset: coin.asset,
+            fiatRatio: -1,
+            symbol: coin.symbol,
+            coinId: coin.id
         }
     }
 }
