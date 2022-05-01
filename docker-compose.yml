@@ -4,13 +4,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: dt-binance-bot
-    image: dtuncbilek/dt-binance-bot:0.0.2
+    container_name: dt-raider
+    image: dtuncbilek/dt-binance-bot:0.0.3
     restart: unless-stopped
 #    volumes:
 #      - ./:/app
-    # ports:
-    #   - 3003:3000
+    ports:
+       - "18751:3000"
     networks:
       - mariadb_network
       - nginxproxymanager_default

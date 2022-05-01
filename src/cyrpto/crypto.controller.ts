@@ -1,14 +1,24 @@
-import {Controller, Get, UseGuards} from '@nestjs/common';
-import {DbService} from "../core/db.service";
+import {Controller, Delete, Get, Param, UseGuards} from '@nestjs/common';
 import {TradeService} from "../core/trade.service";
-import {BinanceService} from "../core/binance.service";
 import {JwtAuthGuard} from "../users/guards-strategies/jwt-auth.guard";
+import {CryptoService} from "./crypto.service";
+
 
 @Controller('crypto')
 @UseGuards(JwtAuthGuard)
 export class CryptoController {
 
-    constructor(private db: DbService, private tradeService: TradeService, private binanceService: BinanceService) {}
+    constructor(private cryptoService: CryptoService, private tradeService: TradeService) {}
+
+    @Get('trades')
+    getTrades() {
+        return this.cryptoService.getTrades();
+    }
+
+    @Get('coins')
+    getBasket() {
+        return this.cryptoService.getBasket();
+    }
 
     // @Get('sell-all')
     // sellAll(@Query('percentage') percentage: string) {
@@ -19,27 +29,24 @@ export class CryptoController {
     // sellToUsdt(@Query('percentage') percentage: string, @Query('asset') asset: string) {
     //     return this.tradeService.sellToUsdt(+percentage, asset, this.binanceService.marketPrices);
     // }
-
-    @Get('trades')
-    getTrades() {
-        return this.db.trades();
-    }
-
-    @Get('coins')
-    getCoins() {
-        return this.db.getBasket();
-    }
-
+    //
     // @Post('add-coin')
     // async addCoin(@Body() createCoinDto: CreateCoinDto) {
-    //     const coin = await this.db.createCoin(createCoinDto);
-    //     await this.binanceService.resetBasket();
-    //     setTimeout(async () => {
-    //         await this.binanceService.fetchAvgPrices();
-    //         await this.binanceService.storeExchangeInfo();
-    //         await this.binanceService.synchronizeBasket();
-    //     }, 2000);
-    //     return coin;
+    //     return this.cryptoService.addCoin(createCoinDto);
     // }
 
+    @Get('app-logs')
+    appLogs() {
+        return this.cryptoService.appLogs();
+    }
+
+    @Get('delete-all')
+    removeAll() {
+        return this.cryptoService.removeAllAppLogs();
+    }
+
+    @Delete('app-logs/:id')
+    remove(@Param('id') id: string) {
+        return this.cryptoService.removeAppLog(+id);
+    }
 }

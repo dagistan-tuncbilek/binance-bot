@@ -14,7 +14,7 @@ CMD [ "npm", "run", "start:prod" ]
 # docker-compose up -d
 
 # FOR SERVER
-# Change env to test or production
+# Change env to test or production, and database
 # npm run build
 # docker-compose build
 # docker push dtuncbilek/dt-binance-bot:0.0.1

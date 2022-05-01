@@ -6,6 +6,7 @@ import {BINANCE_API_URL} from "./config/constants";
 import {Cron, CronExpression} from "@nestjs/schedule";
 import {TradeService} from "./core/trade.service";
 import {BinanceService} from "./core/binance.service";
+import {join} from "path";
 
 
 @Injectable()
@@ -28,8 +29,8 @@ export class AppService {
         }, 5000);
     }
 
-    // @Cron('45 * * * * *')
-    @Cron(CronExpression.EVERY_5_MINUTES)
+    @Cron('45 * * * * *')
+    // @Cron(CronExpression.EVERY_5_MINUTES)
     private async fetchPrices() {
         console.log(new Date().toTimeString().slice(0, 8) + '  ...Fetching prices');
         const basket = await this.binanceService.basket();
@@ -78,6 +79,18 @@ export class AppService {
                 this.httpService.get(`${BINANCE_API_URL}/api/v3/ticker/price?symbol=${symbol}`)
             )
         )
+    }
+
+    @Cron(CronExpression.EVERY_HOUR)
+    async readAppLogs() {
+        console.log('Reading API logs....');
+        const logPath = join(process.cwd(), 'storage', 'logger', 'combined.log');
+        try {
+            await this.db.saveLogFile(logPath);
+        } catch (ex) {
+            console.log(ex);
+            this.logger.error(`API combined.log save error`, JSON.stringify(ex), AppService.name);
+        }
     }
 
     private isDataReady(): boolean {

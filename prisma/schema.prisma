@@ -45,3 +45,14 @@ model Trade {
 
   @@map("trades")
 }
+
+model AppLog {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  context   String?  @db.VarChar(255)
+  level     String   @db.VarChar(255)
+  stack     String?  @db.Text
+  message   String?  @db.Text
+  timestamp DateTime @default(now())
+
+  @@map("app_logs")
+}

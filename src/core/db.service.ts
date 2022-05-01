@@ -5,6 +5,8 @@ import TradeCreateInput = Prisma.TradeCreateInput;
 import CoinUpdateInput = Prisma.CoinUpdateInput;
 import {OrderResponse} from "../config/models/order-response";
 import {CreateCoinDto} from "../config/dto/create-coin.dto";
+import {readFileSync, writeFileSync} from "fs";
+import {AppLog} from "../config/models/app-log";
 
 
 @Injectable()
@@ -72,5 +74,40 @@ export class DbService {
 
     trades() {
         return this.prisma.trade.findMany({ orderBy: { createdAt: 'desc'}});
+    }
+
+    async saveLogFile(path: string) {
+        const data = readFileSync(path, 'utf8');
+        writeFileSync(path, '');
+        const lines = data.split(/\r?\n/);
+        const logs: AppLog[] = [];
+        for (const line of lines) {
+            if (line.trim().length) {
+                const data: any = JSON.parse(line.trim());
+                // if ((data.leve && data.level === 'warn') || data.level === 'error') {
+                if (true){
+                    const appLog = new AppLog();
+                    appLog.level = data.level;
+                    appLog.timestamp = new Date(data.timestamp);
+                    appLog.message = typeof data.message == 'string' ? data.message : JSON.stringify(data.message);
+                    appLog.context = data.context ? data.context : null;
+                    appLog.stack = data.stack ? (typeof data.stack == 'string' ? data.stack : JSON.stringify(data.stack)) : null;
+                    logs.push(appLog);
+                }
+            }
+        }
+        await this.prisma.appLog.createMany({ data: logs})
+    }
+
+    appLogs() {
+        return this.prisma.appLog.findMany({ orderBy: { timestamp: 'desc'}});
+    }
+
+    removeAppLog(id: number){
+        return this.prisma.appLog.delete({ where: { id: id }, select: { id: true } });
+    }
+
+    removeAllAppLogs(): Promise<{ count: number }> {
+        return this.prisma.appLog.deleteMany({});
     }
 }
