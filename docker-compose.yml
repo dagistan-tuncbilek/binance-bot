@@ -4,8 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: dt-raider
-    image: dtuncbilek/dt-binance-bot:0.1
+    container_name: dt-raider-api
+    image: dtuncbilek/dt-raider-api:0.1
     restart: unless-stopped
 #    volumes:
 #      - ./:/app

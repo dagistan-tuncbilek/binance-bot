@@ -1,6 +1,6 @@
 import {Injectable, Logger} from '@nestjs/common';
 import {ComparativeCoinData} from "../config/models/comparative-coin-data";
-import {OVERFLOW_PRICE_TABLE} from "../config/constants";
+import {MAX_COIN_RATIO, OVERFLOW_PRICE_TABLE} from "../config/constants";
 import {DbService} from "./db.service";
 import {ConfigService} from "@nestjs/config";
 import {Environment} from "../config/enums/environment";
@@ -30,29 +30,33 @@ export class TradeService {
         const avgValue = totalValue / comparativeCoinData.length;
         const buyList: {coinData:  ComparativeCoinData, busd: number}[] = [];
         comparativeCoinData = comparativeCoinData.sort((a, b) => a.fiatRatio - b.fiatRatio);
-        const newCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice < 10 && data.overflow === 0);
+        const newCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice < 11 && data.overflow === 0);
         for (const coinData of newCoins) {
             await this.initializeOverFlow(coinData, averageFiatRatio);
         }
 
-        const lowValueCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice <= 10);
-        const otherCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice > 10);
+        const lowValueCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice <= 10.1);
+        const otherCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice > 10.1);
         for (const coinData of lowValueCoins){
             const tableRow = OVERFLOW_PRICE_TABLE.find(row => row.overflow === coinData.overflow);
-            if (busd > 10){
+            if (busd > 11){
                 const amount = busd > tableRow.factor * avgValue ? tableRow.factor * avgValue : busd;
-                buyList.push({coinData: coinData, busd: amount });
-                busd = busd - amount;
+                if (amount * coinData.currentPrice > 11){
+                    buyList.push({coinData: coinData, busd: amount - 0.1 });
+                    busd = busd - amount;
+                }
             } else {
                 break;
             }
         }
         for (const coinData of otherCoins){
-            if (busd > 10){
-                const requiredValue = avgValue * 2 - coinData.amount * coinData.currentPrice;
+            if (busd > 11){
+                const requiredValue = avgValue * MAX_COIN_RATIO - coinData.amount * coinData.currentPrice;
                 const amount = busd > requiredValue ? requiredValue : busd;
-                buyList.push({coinData: coinData, busd: amount });
-                busd = busd - amount;
+                if (amount * coinData.currentPrice > 11){
+                    buyList.push({coinData: coinData, busd: amount - 0.1 });
+                    busd = busd - amount;
+                }
             } else {
                 break;
             }
