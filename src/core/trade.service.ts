@@ -95,18 +95,17 @@ export class TradeService {
         return 0;
     }
 
-    private async decreaseOverflow(data: ComparativeCoinData, averageFiatRatio: number) {
-        if (data.overflow === 0) {
+    private async decreaseOverflow(coinData: ComparativeCoinData, averageFiatRatio: number) {
+        if (coinData.overflow === 0) {
             return;
         }
-        const ratio = data.fiatRatio / averageFiatRatio;
-        for (let i = 0; i < OVERFLOW_PRICE_TABLE.length; i++) {
-            if (data.overflow > i && ratio < (OVERFLOW_PRICE_TABLE[i].percentage + 100) / 100) {
-                await this.db.updateCoin(data.coinId, {overflow: i});
-                data.overflow = i;
-                console.log(data.asset + ' Overflow decreased to: ' + i)
-                break;
-            }
+        const ratio = coinData.fiatRatio / averageFiatRatio;
+        if (ratio + 0.01 < (OVERFLOW_PRICE_TABLE[coinData.overflow].percentage + 100) / 100) {
+            await this.db.updateCoin(coinData.coinId, {overflow: coinData.overflow -1});
+            coinData.overflow =  coinData.overflow -1;
+            await this.binanceService.resetBasket();
+            this.logger.log(coinData.asset + ' Overflow decreased to: ' + coinData.overflow);
+
         }
     }
 
@@ -142,6 +141,7 @@ export class TradeService {
                 .then(async response => {
                     this.logger.log(response.data);
                     await this.db.createTrade(response.data);
+                    await this.binanceService.resetBasket();
                     await this.binanceService.synchronizeBasket();
                 })
                 .catch(err => {
@@ -166,6 +166,7 @@ export class TradeService {
                         overflow: coinData.overflow + 1
                     });
                     await this.db.createTrade(response.data);
+                    await this.binanceService.resetBasket();
                 })
                 .catch(err => {
                     console.log(err);
