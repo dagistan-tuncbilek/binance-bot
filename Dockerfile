@@ -9,7 +9,7 @@ EXPOSE 3000
 CMD [ "npm", "run", "start:prod" ]
 
 # LOCAL CONTAINER
-# Change env to test or production
+# Change env to test or production and db
 # npm run build
 # docker-compose up -d
 

@@ -29,7 +29,7 @@ export class DbService {
         try {
             return await this.prisma.coin.create({data: createCoinDto});
         } catch (ex) {
-            throw new BadRequestException('Symbol and asset mus be uniq');
+            throw new BadRequestException('Symbol and asset must be uniq');
         }
     }
 

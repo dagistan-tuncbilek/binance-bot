@@ -1,7 +1,8 @@
-import {Controller, Delete, Get, Param, UseGuards} from '@nestjs/common';
+import {Body, Controller, Delete, Get, Param, Post, UseGuards} from '@nestjs/common';
 import {TradeService} from "../core/trade.service";
 import {JwtAuthGuard} from "../users/guards-strategies/jwt-auth.guard";
 import {CryptoService} from "./crypto.service";
+import {CreateCoinDto} from "../config/dto/create-coin.dto";
 
 
 @Controller('crypto')

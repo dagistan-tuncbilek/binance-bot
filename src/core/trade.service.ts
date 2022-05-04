@@ -17,8 +17,8 @@ export class TradeService {
     async buy() {
         let busd = (await this.binanceService.basket()).find(c => c.asset === 'BUSD').amount;
         if (busd < 11) return;
-        const buyList: {coinData:  ComparativeCoinData, busd: number}[] = await this.prepareBuyList(busd);
-        for (const item of buyList){
+        const buyList: { coinData: ComparativeCoinData, busd: number }[] = await this.prepareBuyList(busd);
+        for (const item of buyList) {
             console.log(`Buying ${item.coinData.symbol}, amount ${item.busd}`);
             this.startBuyTrade(item.coinData, busd);
         }
@@ -28,7 +28,7 @@ export class TradeService {
         let {comparativeCoinData, totalValue, averageFiatRatio} = await this.prepareDataForTrade();
         console.log('totalValue : ', totalValue);
         const avgValue = totalValue / comparativeCoinData.length;
-        const buyList: {coinData:  ComparativeCoinData, busd: number}[] = [];
+        const buyList: { coinData: ComparativeCoinData, busd: number }[] = [];
         comparativeCoinData = comparativeCoinData.sort((a, b) => a.fiatRatio - b.fiatRatio);
         const newCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice < 11 && data.overflow === 0);
         for (const coinData of newCoins) {
@@ -37,24 +37,26 @@ export class TradeService {
 
         const lowValueCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice <= 10.1);
         const otherCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice > 10.1);
-        for (const coinData of lowValueCoins){
+        for (const coinData of lowValueCoins) {
             const tableRow = OVERFLOW_PRICE_TABLE.find(row => row.overflow === coinData.overflow);
-            if (busd > 11){
-                const amount = busd > tableRow.factor * avgValue ? tableRow.factor * avgValue : busd;
-                if (amount * coinData.currentPrice > 11){
-                    buyList.push({coinData: coinData, busd: amount - 0.1 });
-                    busd = busd - amount;
+            if (busd > 11) {
+                if (coinData.overflow === 0){
+                    const amount = busd > tableRow.factor * avgValue ? tableRow.factor * avgValue : busd;
+                    if (amount * coinData.currentPrice > 11) {
+                        buyList.push({coinData: coinData, busd: amount - 0.1});
+                        busd = busd - amount;
+                    }
                 }
             } else {
                 break;
             }
         }
-        for (const coinData of otherCoins){
-            if (busd > 11){
+        for (const coinData of otherCoins) {
+            if (busd > 11) {
                 const requiredValue = avgValue * MAX_COIN_RATIO - coinData.amount * coinData.currentPrice;
                 const amount = busd > requiredValue ? requiredValue : busd;
-                if (amount * coinData.currentPrice > 11){
-                    buyList.push({coinData: coinData, busd: amount - 0.1 });
+                if (amount * coinData.currentPrice > 11) {
+                    buyList.push({coinData: coinData, busd: amount - 0.1});
                     busd = busd - amount;
                 }
             } else {
@@ -100,9 +102,12 @@ export class TradeService {
             return;
         }
         const ratio = coinData.fiatRatio / averageFiatRatio;
-        if (ratio + 0.01 < (OVERFLOW_PRICE_TABLE[coinData.overflow].percentage + 100) / 100) {
-            await this.db.updateCoin(coinData.coinId, {overflow: coinData.overflow -1});
-            coinData.overflow =  coinData.overflow -1;
+        const decreasedPercentage = OVERFLOW_PRICE_TABLE[coinData.overflow - 1].percentage !== 0
+            ? OVERFLOW_PRICE_TABLE[coinData.overflow - 2].percentage : 1;
+        const percentage = OVERFLOW_PRICE_TABLE[coinData.overflow].percentage;
+        if (ratio + (percentage - decreasedPercentage) / 100 < (percentage + 100) / 100) {
+            await this.db.updateCoin(coinData.coinId, {overflow: coinData.overflow - 1});
+            coinData.overflow = coinData.overflow - 1;
             await this.binanceService.resetBasket();
             this.logger.log(coinData.asset + ' Overflow decreased to: ' + coinData.overflow);
 
@@ -183,11 +188,11 @@ export class TradeService {
     }
 
     private async initializeOverFlow(coinData: ComparativeCoinData, averageFiatRatio: number) {
-        for (let i = OVERFLOW_PRICE_TABLE.length -1 ; i >= 0 ; i--){
-            if (i !== coinData.overflow && coinData.fiatRatio / averageFiatRatio > (OVERFLOW_PRICE_TABLE[i].percentage + 100) / 100){
-                console.log(coinData.asset, { overflow: i });
+        for (let i = OVERFLOW_PRICE_TABLE.length - 1; i >= 0; i--) {
+            if (i !== coinData.overflow && coinData.fiatRatio / averageFiatRatio > (OVERFLOW_PRICE_TABLE[i].percentage + 100) / 100) {
+                console.log(coinData.asset, {overflow: i});
                 coinData.overflow = i;
-                await this.db.updateCoinByAsset(coinData.asset, { overflow: i });
+                await this.db.updateCoinByAsset(coinData.asset, {overflow: i});
                 break;
             }
         }
@@ -196,11 +201,11 @@ export class TradeService {
     async sellAll(percentage: number, marketPrices: MarketPrice[]) {
         const basket = (await this.binanceService.basket()).filter(c => c.asset !== "BUSD" && c.asset !== "USDT");
         const response = [];
-        for (const coin of basket){
+        for (const coin of basket) {
             const marketPrice = marketPrices.find(p => p.symbol === coin.symbol);
-            if (coin.amount * +marketPrice.price * percentage / 100 > 10.1){
+            if (coin.amount * +marketPrice.price * percentage / 100 > 10.1) {
                 const coinData = TradeService.createCoinData(coin, marketPrice);
-                this.startSellTrade(coinData, coin.amount * percentage / 100, true );
+                this.startSellTrade(coinData, coin.amount * percentage / 100, true);
                 const symbol = coin.symbol.slice(0, coin.symbol.length - 4) + "USDT";
                 response.push({message: this.getValidQuantity(coin.symbol, coin.amount * percentage / 100) + " " + symbol + " sold."});
             } else {
@@ -213,13 +218,13 @@ export class TradeService {
     async sellToUsdt(percentage: number, asset: string, marketPrices: MarketPrice[]) {
         const coin = (await this.binanceService.basket()).find(c => c.asset === asset);
         const marketPrice = marketPrices.find(p => p.symbol === coin.symbol);
-        if (coin.amount * +marketPrice.price * percentage / 100 > 10.1){
+        if (coin.amount * +marketPrice.price * percentage / 100 > 10.1) {
             const coinData = TradeService.createCoinData(coin, marketPrice);
-            this.startSellTrade(coinData, coin.amount * percentage / 100, true );
+            this.startSellTrade(coinData, coin.amount * percentage / 100, true);
             const symbol = coin.symbol.slice(0, coin.symbol.length - 4) + "USDT";
-            return { message: this.getValidQuantity(coin.symbol, coin.amount * percentage / 100) + " " + symbol + " sold."};
+            return {message: this.getValidQuantity(coin.symbol, coin.amount * percentage / 100) + " " + symbol + " sold."};
         } else {
-            return { message: "Quantity is not enough"};
+            return {message: "Quantity is not enough"};
         }
     }
 

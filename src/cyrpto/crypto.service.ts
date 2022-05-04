@@ -26,7 +26,7 @@ export class CryptoService {
             await this.binanceService.fetchAvgPrices();
             await this.binanceService.storeExchangeInfo();
             await this.binanceService.synchronizeBasket();
-        }, 2000);
+        }, 3000);
         return coin;
     }
 

@@ -22,7 +22,7 @@ model Coin {
   symbol        String?     @db.VarChar(255) @unique
   averagePrice  Float       @default(9999999)
   amount        Float       @default(0)
-  overflow      Int         @default(0)
+  overflow      Int         @default(6)
   updatedAt     DateTime    @updatedAt
   createdAt     DateTime    @default(now())
 

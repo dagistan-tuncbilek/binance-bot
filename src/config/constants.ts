@@ -11,11 +11,11 @@ export const LOG_LEVEL = 'info'; // other options warn, error, info, debug
 
 export const OVERFLOW_PRICE_TABLE: { overflow: number; factor: number; percentage: number }[] = [
     {overflow: 0, factor: 1, percentage: 0},
-    {overflow: 1, factor: 0.75, percentage: 2},
-    {overflow: 2, factor: 0.50, percentage: 5},
-    {overflow: 3, factor: 0.35, percentage: 10},
-    {overflow: 4, factor: 0.20, percentage: 20},
-    {overflow: 5, factor: 0.10, percentage: 50},
+    {overflow: 1, factor: 0.75, percentage: 5},
+    {overflow: 2, factor: 0.50, percentage: 10},
+    {overflow: 3, factor: 0.35, percentage: 20},
+    {overflow: 4, factor: 0.20, percentage: 40},
+    {overflow: 5, factor: 0.10, percentage: 60},
     {overflow: 6, factor: 0.03, percentage: 100},
 ];
 
