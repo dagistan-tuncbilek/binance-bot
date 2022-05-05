@@ -31,10 +31,10 @@ export class CryptoController {
     //     return this.tradeService.sellToUsdt(+percentage, asset, this.binanceService.marketPrices);
     // }
     //
-    // @Post('add-coin')
-    // async addCoin(@Body() createCoinDto: CreateCoinDto) {
-    //     return this.cryptoService.addCoin(createCoinDto);
-    // }
+    @Post('add-coin')
+    async addCoin(@Body() createCoinDto: CreateCoinDto) {
+        return this.cryptoService.addCoin(createCoinDto);
+    }
 
     @Get('app-logs')
     appLogs() {

@@ -73,7 +73,7 @@ export class DbService {
     }
 
     trades() {
-        return this.prisma.trade.findMany({ orderBy: { createdAt: 'desc'}});
+        return this.prisma.trade.findMany({ orderBy: { createdAt: 'desc'}, take: 20 });
     }
 
     async saveLogFile(path: string) {

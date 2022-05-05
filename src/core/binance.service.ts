@@ -68,7 +68,10 @@ export class BinanceService {
                     const average = response.data.reduce((a,b) => a + +b[4], 0) / PRICE_REQUEST_LIMIT;
                     this.db.updateAveragePriceBySymbol(symbol, average);
                 },
-                error: err => this.logger.error('FetchDailyAvgPrices request, ', JSON.stringify(err.data), BinanceService.name)
+                error: err => {
+                    this.logger.error('FetchDailyAvgPrices request, ', JSON.stringify(err.data), BinanceService.name);
+                    this.logger.log(err);
+                }
             });
         }
     }

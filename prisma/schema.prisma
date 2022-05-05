@@ -20,7 +20,7 @@ model Coin {
   id            Int         @id @default(autoincrement()) @db.UnsignedInt
   asset         String      @db.VarChar(255) @unique
   symbol        String?     @db.VarChar(255) @unique
-  averagePrice  Float       @default(9999999)
+  averagePrice  Float       @default(0)
   amount        Float       @default(0)
   overflow      Int         @default(6)
   updatedAt     DateTime    @updatedAt

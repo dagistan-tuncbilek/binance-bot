@@ -64,7 +64,8 @@ export class AppService {
         }, 15000);
     }
 
-    @Cron(CronExpression.EVERY_12_HOURS)
+    // At minute 1 past every 12th hour.
+    @Cron('1 */12 * * *')
     public async synchronizeBasket() {
         console.log('Synchronizing Basket...');
         await this.binanceService.synchronizeBasket();
@@ -77,7 +78,8 @@ export class AppService {
         }, 3000);
     }
 
-    @Cron(CronExpression.EVERY_4_HOURS)
+    // At minute 2 past every 4th hour.
+    @Cron('2 */4 * * *')
     async fetchAvgPrices() {
         await this.binanceService.fetchAvgPrices();
     }
