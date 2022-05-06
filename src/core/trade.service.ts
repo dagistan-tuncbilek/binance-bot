@@ -87,10 +87,13 @@ export class TradeService {
         if (coinData.overflow !== 6 && ratio > (OVERFLOW_PRICE_TABLE[coinData.overflow + 1].percentage + 100) / 100) {
             const priceRow = OVERFLOW_PRICE_TABLE.find(ovf => ovf.overflow === coinData.overflow + 1);
             const requiredBusd = (totalValue / count) * priceRow.factor;
-            const requiredAmount = requiredBusd / coinData.currentPrice;
-            const difference = coinData.amount - requiredAmount;
+            const minimumAmount = requiredBusd / coinData.currentPrice;
+            const surplus = coinData.amount - minimumAmount;
+            const defaultSellAmount = coinData.amount * (1 - priceRow.factor);
+            const difference = defaultSellAmount < surplus ? defaultSellAmount : surplus;
+
             if (difference * coinData.currentPrice > 11) {
-                console.log('requiredBusd: ', requiredBusd, 'requiredAmount: ', requiredAmount, 'currentAmount: ', coinData.amount, 'difference: ', difference);
+                console.log('requiredBusd: ', requiredBusd, 'minimumAmount: ', minimumAmount, 'minimumAmount: ', coinData.amount, 'difference: ', difference);
                 return difference;
             }
         }
