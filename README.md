@@ -1,73 +1,18 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
+unsaved data
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Installation
-
-```bash
-$ npm install
-```
-
-## Running the app
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Test
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](LICENSE).
+1	AUDIOBUSD	BUY	0.783	242	MARKET	May 6, 2022, 9:39:36 AM
+2	CHZBUSD	SELL	0.1722	859	MARKET	May 6, 2022, 9:39:30 AM
+3	CHZBUSD	SELL	0.1721	243	MARKET	May 6, 2022, 9:39:30 AM
+4	AUDIOBUSD	BUY	0.78	134.6	MARKET	May 5, 2022, 9:31:36 PM
+5	HOTBUSD	SELL	0.003901	26927.6	MARKET	May 5, 2022, 9:31:30 PM
+6	AUDIOBUSD	BUY	0.78	290	MARKET	May 5, 2022, 9:27:36 PM
+7	ADABUSD	SELL	0.7891	66.6	MARKET	May 5, 2022, 9:27:30 PM
+8	ADABUSD	SELL	0.7891	220.4	MARKET	May 5, 2022, 9:27:30 PM
+9	ASTRBUSD	BUY	0.1576	259.3	MARKET	May 5, 2022, 2:39:36 PM
+10	ASTRBUSD	BUY	0.1577	1482.7	MARKET	May 5, 2022, 2:39:36 PM
+11	ASTRBUSD	BUY	0.1577	3007.4	MARKET	May 5, 2022, 2:39:36 PM
+12	MINABUSD	SELL	2.037	2.9	MARKET	May 5, 2022, 2:39:30 PM
+13	MINABUSD	SELL	2.035	9.8	MARKET	May 5, 2022, 2:39:30 PM
+14	MINABUSD	SELL	2.035	11.3	MARKET	May 5, 2022, 2:39:30 PM
+15	MINABUSD	SELL	2.035	294.2	MARKET	May 5, 2022, 2:39:30 PM
+16	HBARBUSD	SELL	0.1491	685	MARKET	May 5, 2022, 2:39:30 PM

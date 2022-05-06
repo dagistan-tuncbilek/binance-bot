@@ -123,7 +123,7 @@ export class TradeService {
         const comparativeCoinData: ComparativeCoinData[] = [];
         for (const coin of basket) {
             if (coin.symbol !== 'BUSD' && coin.symbol !== 'USDT') {
-                const currentPrice = +this.binanceService.marketPrices.find(p => p.symbol === coin.symbol).price;
+                const currentPrice = +this.binanceService.marketPrices.find(p => p.symbol === coin.symbol).lastPrice;
                 comparativeCoinData.push({
                     coinId: coin.id,
                     symbol: coin.symbol,
@@ -206,7 +206,7 @@ export class TradeService {
         const response = [];
         for (const coin of basket) {
             const marketPrice = marketPrices.find(p => p.symbol === coin.symbol);
-            if (coin.amount * +marketPrice.price * percentage / 100 > 10.1) {
+            if (coin.amount * +marketPrice.lastPrice * percentage / 100 > 10.1) {
                 const coinData = TradeService.createCoinData(coin, marketPrice);
                 this.startSellTrade(coinData, coin.amount * percentage / 100, true);
                 const symbol = coin.symbol.slice(0, coin.symbol.length - 4) + "USDT";
@@ -221,7 +221,7 @@ export class TradeService {
     async sellToUsdt(percentage: number, asset: string, marketPrices: MarketPrice[]) {
         const coin = (await this.binanceService.basket()).find(c => c.asset === asset);
         const marketPrice = marketPrices.find(p => p.symbol === coin.symbol);
-        if (coin.amount * +marketPrice.price * percentage / 100 > 10.1) {
+        if (coin.amount * +marketPrice.lastPrice * percentage / 100 > 10.1) {
             const coinData = TradeService.createCoinData(coin, marketPrice);
             this.startSellTrade(coinData, coin.amount * percentage / 100, true);
             const symbol = coin.symbol.slice(0, coin.symbol.length - 4) + "USDT";
@@ -236,7 +236,7 @@ export class TradeService {
             amount: coin.amount,
             averagePrice: coin.averagePrice,
             overflow: coin.overflow,
-            currentPrice: +marketPrice.price,
+            currentPrice: +marketPrice.lastPrice,
             asset: coin.asset,
             fiatRatio: -1,
             symbol: coin.symbol,

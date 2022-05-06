@@ -1,6 +1,5 @@
 import {Injectable, Logger} from '@nestjs/common';
 import {HttpService} from "@nestjs/axios";
-import {forkJoin, Observable} from "rxjs";
 import {DbService} from "./core/db.service";
 import {BINANCE_API_URL} from "./config/constants";
 import {Cron, CronExpression} from "@nestjs/schedule";
@@ -37,7 +36,7 @@ export class AppService {
         const symbols = basket.filter(c => c.symbol !== 'BUSD' && c.symbol !== 'USDT').map(c => c.symbol);
         this.binanceService.marketPrices = [];
         for (const symbol of symbols) {
-            await this.findLastPrice(symbol).subscribe({
+            this.fetch24hrTickerPriceChangeStatistic(symbol).subscribe({
                 next: response => {
                     this.binanceService.marketPrices.push(response.data);
                 },
@@ -84,8 +83,8 @@ export class AppService {
         await this.binanceService.fetchAvgPrices();
     }
 
-    private findLastPrice(symbol: string): Observable<any> {
-        return this.httpService.get(`${BINANCE_API_URL}/api/v3/ticker/price?symbol=${symbol}`)
+    private fetch24hrTickerPriceChangeStatistic(symbol: string){
+        return this.httpService.get(`${BINANCE_API_URL}/api/v3/ticker/24hr?symbol=${symbol}`)
     }
 
     @Cron(CronExpression.EVERY_HOUR)
