@@ -114,4 +114,25 @@ export class BinanceService {
     public realClient = () => {
         return new Spot(this.config.get('API_KEY'), this.config.get('SECRET_KEY'));
     }
+
+    async updateMarketPrices() {
+        const basket = await this.basket();
+        const symbols = basket.filter(c => c.symbol !== 'BUSD' && c.symbol !== 'USDT').map(c => c.symbol);
+        this.marketPrices = [];
+        for (const symbol of symbols) {
+            this.fetch24hrTickerPriceChangeStatistic(symbol).subscribe({
+                next: response => {
+                    this.marketPrices.push(response.data);
+                },
+                error: err => {
+                    this.logger.error('FindLastPrice request, ', err.data, BinanceService.name);
+                    this.logger.log(err.data);
+                }
+            });
+        }
+    }
+
+    private fetch24hrTickerPriceChangeStatistic(symbol: string){
+        return this.httpService.get(`${BINANCE_API_URL}/api/v3/ticker/24hr?symbol=${symbol}`)
+    }
 }

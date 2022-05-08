@@ -29,7 +29,6 @@ export class TradeService {
         console.log('totalValue : ', totalValue);
         const avgValue = totalValue / comparativeCoinData.length;
         const buyList: { coinData: ComparativeCoinData, busd: number }[] = [];
-        comparativeCoinData = comparativeCoinData.sort((a, b) => a.fiatRatio - b.fiatRatio);
         const newCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice < 11 && data.overflow === 0);
         for (const coinData of newCoins) {
             await this.initializeOverFlow(coinData, averageFiatRatio);
@@ -51,14 +50,14 @@ export class TradeService {
                 break;
             }
         }
+
         for (const coinData of otherCoins) {
             if (busd > 11) {
                 const requiredValue = avgValue * MAX_COIN_RATIO - coinData.amount * coinData.currentPrice;
                 const amount = busd > requiredValue ? requiredValue : busd;
-                if (amount * coinData.currentPrice > 11) {
-                    buyList.push({coinData: coinData, busd: amount - 0.1});
-                    busd = busd - amount;
-                }
+                // console.log(requiredValue, coinData.asset, amount, requiredValue)
+                buyList.push({coinData: coinData, busd: amount - 0.1});
+                busd = busd - amount;
             } else {
                 break;
             }
@@ -113,14 +112,13 @@ export class TradeService {
             coinData.overflow = coinData.overflow - 1;
             await this.binanceService.resetBasket();
             this.logger.log(coinData.asset + ' Overflow decreased to: ' + coinData.overflow);
-
         }
     }
 
     private async prepareDataForTrade() {
         const basket = await this.binanceService.basket();
         let totalValue = basket.find(c => c.asset === 'BUSD').amount;
-        const comparativeCoinData: ComparativeCoinData[] = [];
+        let comparativeCoinData: ComparativeCoinData[] = [];
         for (const coin of basket) {
             if (coin.symbol !== 'BUSD' && coin.symbol !== 'USDT') {
                 const currentPrice = +this.binanceService.marketPrices.find(p => p.symbol === coin.symbol).lastPrice;
@@ -137,6 +135,7 @@ export class TradeService {
                 totalValue += currentPrice * coin.amount;
             }
         }
+        comparativeCoinData = comparativeCoinData.sort((a, b) => a.fiatRatio - b.fiatRatio);
         const averageFiatRatio = comparativeCoinData.map(d => d.fiatRatio).reduce((a, b) => a + b, 0) / comparativeCoinData.length;
         // console.log(comparativeCoinData, averageFiatRatio, totalValue);
         return {comparativeCoinData, totalValue, averageFiatRatio};
