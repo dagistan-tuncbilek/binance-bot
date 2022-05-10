@@ -34,18 +34,14 @@ export class TradeService {
             await this.initializeOverFlow(coinData, averageFiatRatio);
         }
 
-        const lowValueCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice <= 10.1);
-        const otherCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice > 10.1);
+        const lowValueCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice <= 11);
+        const otherCoins = comparativeCoinData.filter(data => data.amount * data.currentPrice > 11);
         for (const coinData of lowValueCoins) {
             const tableRow = OVERFLOW_PRICE_TABLE.find(row => row.overflow === coinData.overflow);
             if (busd > 11) {
-                if (coinData.overflow === 0){
-                    const amount = busd > tableRow.factor * avgValue ? tableRow.factor * avgValue : busd;
-                    if (amount * coinData.currentPrice > 11) {
-                        buyList.push({coinData: coinData, busd: amount - 0.1});
-                        busd = busd - amount;
-                    }
-                }
+                const amount = busd > tableRow.factor * avgValue ? tableRow.factor * avgValue : busd;
+                buyList.push({coinData: coinData, busd: amount - 0.1});
+                busd = busd - amount;
             } else {
                 break;
             }
@@ -53,11 +49,14 @@ export class TradeService {
 
         for (const coinData of otherCoins) {
             if (busd > 11) {
-                const requiredValue = avgValue * MAX_COIN_RATIO - coinData.amount * coinData.currentPrice;
-                const amount = busd > requiredValue ? requiredValue : busd;
-                // console.log(requiredValue, coinData.asset, amount, requiredValue)
-                buyList.push({coinData: coinData, busd: amount - 0.1});
-                busd = busd - amount;
+                const currentValue = coinData.amount * coinData.currentPrice;
+                const requiredValue = avgValue * MAX_COIN_RATIO - currentValue;
+                if (requiredValue > 11){
+                    const amount = busd > requiredValue ? requiredValue : busd;
+                    // console.log(requiredValue, coinData.asset, amount, requiredValue)
+                    buyList.push({coinData: coinData, busd: amount - 0.1});
+                    busd = busd - amount;
+                }
             } else {
                 break;
             }
@@ -69,7 +68,7 @@ export class TradeService {
         let sold = false;
         const {comparativeCoinData, totalValue, averageFiatRatio} = await this.prepareDataForTrade();
         for (const coinData of comparativeCoinData) {
-            const surplus: number = this.calculateSellAmount(coinData, averageFiatRatio, totalValue, comparativeCoinData.length);
+            const surplus: number = await this.calculateSellAmount(coinData, averageFiatRatio, totalValue, comparativeCoinData.length);
             if (surplus) {
                 console.log('Selling ' + coinData.symbol + ' : ' + surplus);
                 this.startSellTrade(coinData, surplus);
@@ -80,7 +79,7 @@ export class TradeService {
         return sold;
     }
 
-    private calculateSellAmount(coinData: ComparativeCoinData, averageFiatRatio: number, totalValue: number, count: number): number {
+    private async calculateSellAmount(coinData: ComparativeCoinData, averageFiatRatio: number, totalValue: number, count: number): Promise<number> {
         const ratio = coinData.fiatRatio / averageFiatRatio;
         console.log(coinData.asset, 'ratio: ' + ratio, 'Overflow Ratio: ' + (OVERFLOW_PRICE_TABLE[coinData.overflow].percentage + 100) / 100);
         if (coinData.overflow !== 6 && ratio > (OVERFLOW_PRICE_TABLE[coinData.overflow + 1].percentage + 100) / 100) {
@@ -92,8 +91,12 @@ export class TradeService {
             const difference = defaultSellAmount < surplus ? defaultSellAmount : surplus;
 
             if (difference * coinData.currentPrice > 11) {
-                console.log('requiredBusd: ', requiredBusd, 'minimumAmount: ', minimumAmount, 'minimumAmount: ', coinData.amount, 'difference: ', difference);
+                this.logger.log('requiredBusd: ', requiredBusd, 'minimumAmount: ', minimumAmount, 'minimumAmount: ', coinData.amount, 'difference: ', difference);
                 return difference;
+            } else {
+                this.logger.log(`${coinData.asset} overflow increased to ${coinData.overflow + 1}, but sold 0`);
+                await this.db.updateCoinByAsset(coinData.asset, {overflow: coinData.overflow + 1});
+                await this.binanceService.resetBasket();
             }
         }
         return 0;
@@ -152,7 +155,7 @@ export class TradeService {
                     await this.binanceService.synchronizeBasket();
                 })
                 .catch(err => {
-                    console.log(err);
+                    this.logger.log(err);
                     this.logger.error('Buy order, ', err.data, TradeService.name);
                 });
         }
@@ -176,7 +179,7 @@ export class TradeService {
                     await this.binanceService.resetBasket();
                 })
                 .catch(err => {
-                    console.log(err);
+                    this.logger.log(err);
                     this.logger.error('Find last prices request, ', err, TradeService.name)
                 });
         }

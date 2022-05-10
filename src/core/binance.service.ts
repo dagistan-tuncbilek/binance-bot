@@ -135,4 +135,12 @@ export class BinanceService {
     private fetch24hrTickerPriceChangeStatistic(symbol: string){
         return this.httpService.get(`${BINANCE_API_URL}/api/v3/ticker/24hr?symbol=${symbol}`)
     }
+
+    updateData() {
+        setTimeout(async () => {
+            await this.fetchAvgPrices();
+            await this.storeExchangeInfo();
+            await this.synchronizeBasket();
+        }, 3000);
+    }
 }

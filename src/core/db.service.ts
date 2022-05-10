@@ -7,6 +7,7 @@ import {OrderResponse} from "../config/models/order-response";
 import {CreateCoinDto} from "../config/dto/create-coin.dto";
 import {readFileSync, writeFileSync} from "fs";
 import {AppLog} from "../config/models/app-log";
+import {RemoveCoinDto} from "../config/dto/remove-coin.dto";
 
 
 @Injectable()
@@ -109,5 +110,9 @@ export class DbService {
 
     removeAllAppLogs(): Promise<{ count: number }> {
         return this.prisma.appLog.deleteMany({});
+    }
+
+    async removeCoin(removeCoinDto: RemoveCoinDto) {
+        return this.prisma.coin.delete({ where: { asset: removeCoinDto.asset}});
     }
 }

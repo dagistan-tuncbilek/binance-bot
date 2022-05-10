@@ -3,6 +3,7 @@ import {TradeService} from "../core/trade.service";
 import {JwtAuthGuard} from "../users/guards-strategies/jwt-auth.guard";
 import {CryptoService} from "./crypto.service";
 import {CreateCoinDto} from "../config/dto/create-coin.dto";
+import {RemoveCoinDto} from "../config/dto/remove-coin.dto";
 
 
 @Controller('crypto')
@@ -34,6 +35,11 @@ export class CryptoController {
     @Post('add-coin')
     async addCoin(@Body() createCoinDto: CreateCoinDto) {
         return this.cryptoService.addCoin(createCoinDto);
+    }
+
+    @Post('remove-coin')
+    async removeCoin(@Body() createCoinDto: RemoveCoinDto) {
+        return this.cryptoService.removeCoin(createCoinDto);
     }
 
     @Get('app-logs')

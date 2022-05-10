@@ -2,6 +2,7 @@ import {Injectable} from '@nestjs/common';
 import {DbService} from "../core/db.service";
 import {BinanceService} from "../core/binance.service";
 import {CreateCoinDto} from "../config/dto/create-coin.dto";
+import {RemoveCoinDto} from "../config/dto/remove-coin.dto";
 
 @Injectable()
 export class CryptoService {
@@ -22,11 +23,14 @@ export class CryptoService {
     async addCoin(createCoinDto: CreateCoinDto) {
         const coin = await this.db.createCoin(createCoinDto);
         await this.binanceService.resetBasket();
-        setTimeout(async () => {
-            await this.binanceService.fetchAvgPrices();
-            await this.binanceService.storeExchangeInfo();
-            await this.binanceService.synchronizeBasket();
-        }, 3000);
+        this.binanceService.updateData();
+        return coin;
+    }
+
+    async removeCoin(removeCoinDto: RemoveCoinDto) {
+        const coin = await this.db.removeCoin(removeCoinDto);
+        await this.binanceService.resetBasket();
+        this.binanceService.updateData();
         return coin;
     }
 
@@ -41,4 +45,6 @@ export class CryptoService {
     removeAllAppLogs(): Promise<{ count: number }> {
         return this.db.removeAllAppLogs();
     }
+
+
 }
