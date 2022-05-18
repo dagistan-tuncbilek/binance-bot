@@ -20,7 +20,7 @@ export class AppService {
 
     async initialize() {
         console.log(await this.binanceService.basket());
-        setTimeout(async () => await this.synchronizeBasket(), 2000)
+        setTimeout(async () => await this.synchronizeBasket(), 2000);
         setTimeout(async () => {
             await this.binanceService.storeExchangeInfo();
             await this.fetchAvgPrices();
@@ -32,7 +32,6 @@ export class AppService {
     }
 
     @Cron('15 * * * * *')
-    // @Cron(CronExpression.EVERY_5_MINUTES)
     private async fetchPrices() {
         console.log(new Date().toTimeString().slice(0, 8) + '  ...Fetching prices');
         await this.binanceService.updateMarketPrices();
@@ -41,14 +40,15 @@ export class AppService {
                 const sold = await this.tradeService.sell();
                 if (sold) {
                     setTimeout(async () => await this.binanceService.synchronizeBasket(), 3000);
-                    setTimeout(async () => {
-                        console.log('Sold sth, now buying...');
-                        await this.tradeService.buy();
-                        setTimeout(async () => {
-                            await this.synchronizeBasket();
-                        }, 3000);
-                    }, 6000);
                 }
+                setTimeout(async () => {
+                    const busd = (await this.binanceService.basket()).find(c => c.asset === 'BUSD' || c.asset === 'USDT');
+                    this.logger.log(busd)
+                    if (busd.amount > 10.1){
+                        this.logger.log('Found ' + busd + '$. Buy process started...');
+                        await this.tradeService.buy();
+                    }
+                }, 6000);
             }
         }, 15000);
     }

@@ -39,7 +39,6 @@ export class BinanceService {
                 const coin = (await this.basket()).find(coin => coin.asset === b.asset);
                 return coin && coin.amount !== +b.free && +b.free != 0;
             });
-            // console.log('balances', balances);
             const coins: { id: number, amount: number }[] = (await this.basket())
                 .filter(coin => {
                     const balance = balances.find(b => b.asset === coin.asset);
